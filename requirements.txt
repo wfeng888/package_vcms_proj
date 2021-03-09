@@ -1,0 +1,5 @@
+Cython==0.29.21
+pyjnius==1.2.1
+setuptools==40.8.0
+six==1.15.0
+GitPython==3.1.14
