@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="merge">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/package_vcms/merge.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
