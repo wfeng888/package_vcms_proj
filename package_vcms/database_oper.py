@@ -2,15 +2,15 @@ import logging
 import os
 import subprocess
 from abc import ABCMeta, abstractmethod
-from sys import path
+from os import path
 
 from package_vcms import utils, record_log, WIN
+from package_vcms.platform_func import platform_functool
 
 logger = logging.getLogger(__file__)
 class DatabaseInterface(object,metaclass=ABCMeta):
-    def __init__(self,pconfig,pplatformFunc):
+    def __init__(self,pconfig):
         self.config = pconfig
-        self.platformFunc = pplatformFunc
         self.lang = 1 if self.config.database_lang and self.config.database_lang.lower() == 'en' else 0
 
     @abstractmethod
@@ -21,17 +21,18 @@ class DatabaseInterface(object,metaclass=ABCMeta):
     def stopService(self):
         pass
 
-    @abstractmethod
-    def isAlive(self,url):
-        pass
+    @record_log
+    def isAlive(self):
+        res = self.getOutput('select 1 from dual')
+        logger.debug(res)
+        if '1' == res :
+            return True
+        return False
 
-    @abstractmethod
-    def portBusy(self,port):
-        pass
+    @record_log
+    def isShutdown(self):
+        return not platform_functool.portBusy(self.config.mysql_conn_port)
 
-    @abstractmethod
-    def checkSeedCorrect(self):
-        pass
 
     @abstractmethod
     def execSql(self,sqlfile=None,sql=None,dbname=None):
@@ -41,35 +42,30 @@ class DatabaseInterface(object,metaclass=ABCMeta):
     def getVar(self,varname):
         pass
 
+    @record_log
     def waitUntilAlive(self):
-        def _isAlive():
-            return not self.isAlive()
-        utils.wait_until_timeout(_isAlive)
+        # def _isAlive():
+        #     return not self.isAlive()
+        utils.wait_until_timeout(self.isAlive)
 
     @record_log
     def waitUntilShutdown(self,timeout=30):
-        def _isShutdown():
-            return not self.platformFunc.portBusy(self.config.mysql_conn_port)
-        utils.wait_until_timeout(_isShutdown,timeout)
+        utils.wait_until_timeout(lambda : not self.isShutdown() ,timeout)
 
+    @record_log
     def getOutput(self,cmd):
         res = self.execSql(sql=cmd)
         logger.debug(utils.getLine(res.stdout))
         return utils.getLine(res.stdout)
 
-    @abstractmethod
-    def installSql(self):
-        pass
-
-    @abstractmethod
-    def slimming(self):
-        pass
 
 class MysqlOper(DatabaseInterface):
 
-    def __init__(self,*args,**kwargs):
-        super(MysqlOper, self).__init__(*args,**kwargs)
+    def __init__(self,pconfig):
+        super(MysqlOper, self).__init__(pconfig)
+        self._startProcess = None
 
+    @record_log
     def execSql(self,sqlfile=None,sql=None,dbname=None):
         cmd = self.config.mysql_software_path + ' ' + '-u' + self.config.mysql_conn_username + ' '
         if self.config.mysql_conn_password:
@@ -87,10 +83,13 @@ class MysqlOper(DatabaseInterface):
         res = subprocess.run(cmd,capture_output=True,shell=True,encoding='utf8')
         return res
 
+    @record_log
     def getVar(self,varname):
         return self.getOutput(cmd='select @@' + varname + ' ; ')
 
+    @record_log
     def startService(self):
+        logger.info('start Mysql Database. ')
         cnf = path.join(self.config.mysql_seed_database_base,'my.cnf')
         if WIN:
             mysqld = path.join(self.config.mysql_software_path.rpartition(os.path.sep)[0],'mysqld')
@@ -101,7 +100,9 @@ class MysqlOper(DatabaseInterface):
             self._startProcess = subprocess.Popen([mysqld_safe,'--defaults-file=' + cnf + ' & '],shell=True,encoding='utf8')
             return self._startProcess
 
+    @record_log
     def stopService(self):
+        logger.info('stop Mysql database. ')
         self.execSql(sql=' set global innodb_fast_shutdown=0;')
         self.execSql(sql=' shutdown;')
         self.waitUntilShutdown()
@@ -110,22 +111,6 @@ class MysqlOper(DatabaseInterface):
             self._startProcess.kill()
             self._startProcess = None
 
-    def checkSeedCorrect(self):
-        return self.getVar('datadir').startswith(self.config.mysql_seed_database_base)
 
-    def installSql(self):
-        sql_files=[path.join('tables','table_shell_merge_mysql.sql'),path.join('views','views_shell_merge_mysql.sql') \
-            ,path.join('triggers','triggers_shell_merge_mysql.sql'),path.join('procedure','procedures_functions_shell_merge_mysql.sql')]
-        if self.lang == 1:
-            sql_files.append(path.join('db_basic_data_en','basic_data_shell_merge_mysql.sql'))
-        else:
-            sql_files.append(path.join('db_basic_data','basic_data_shell_merge_mysql.sql'))
-        res = self.execSql(sqlfile=path.join(self.config.mysql_sql_script_base_dir,'init_db.sql'))
-        if getattr(res,'stderr'):
-            logger.error(res.stderr)
-        for file in sql_files:
-            logger.info('execute %s'%file)
-            res = self.execSql(sqlfile=path.join(self.config.mysql_sql_script_base_dir,file),dbname='usmsc')
-            if getattr(res,'stderr'):
-                logger.error(res.stderr)
+
 

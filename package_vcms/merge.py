@@ -1,5 +1,4 @@
 import logging
-import os
 
 from package_vcms import record_log
 
@@ -11,6 +10,7 @@ except:
 
 @record_log
 def merge_sql(sqlbase,lang):
+    logger.info('start merging sql scripts. ')
     MergeTest = autoclass('com.znv.vcms.merge.MergeTest')
     merget = MergeTest()
     ret = merget.mergeTest(sqlbase,lang)

@@ -1,5 +1,6 @@
 import sys
 import time
+import traceback
 import types
 import codecs
 
@@ -335,8 +336,19 @@ def path_join(basepath,suffixpath,sep='/'):
                 s += i
         return basepath + s
 
-def wait_until_timeout(self,func,timeout=30):
+def wait_until_timeout(func,timeout=30):
     increment = 5
-    while( timeout > 0 and func()):
+    while( timeout > 0 and not func()):
         timeout -= increment
         time.sleep(increment)
+
+
+def format_exc():
+    return traceback.format_exc()
+
+
+def formatErrorMsg(e):
+    try:
+        return 'errno:{},msg:{},args:{}'.format(str(e.errno),e.msg,e.args)
+    except BaseException:
+        return traceback.format_exc()

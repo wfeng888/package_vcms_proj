@@ -1,21 +1,28 @@
 import logging
 import sys
+import traceback
 from configparser import ConfigParser
 from logging.handlers import TimedRotatingFileHandler
 from os import path
 from functools import partial, wraps
 
 CURRENT_DIR = path.abspath(path.dirname(__file__))
-logger = logging.getLogger()
+
+#打包阶段
+STAGE_DOWNLOAD_REPO=1
+STAGE_INIT_SEEDDB=2
+
+#日志
+#logger = logging.getLogger()
 # logging.basicConfig()
-filehandler = TimedRotatingFileHandler(path.join(path.split(__file__)[0],'running.log'),when='D',backupCount=7,encoding='utf-8')
+filehandler = TimedRotatingFileHandler(path.join(path.split(__file__)[0],'log','running.log'),when='D',backupCount=7,encoding='utf-8')
 lformat = logging.Formatter(fmt=' %(asctime)s-%(levelname)s-%(name)s-%(thread)d-%(message)s')
 filehandler.setFormatter(lformat)
-logger.addHandler(filehandler)
-logger.setLevel(logging.INFO)
+logging.getLogger().addHandler(filehandler)
+logging.getLogger().setLevel(logging.INFO)
 
-logger = logging.getLogger(__file__)
 
+#平台
 WIN = None
 LINUX = None
 if sys.platform.startswith('win'):
@@ -23,13 +30,13 @@ if sys.platform.startswith('win'):
 else:
     LINUX = 1
 
-
+logger = logging.getLogger(__file__)
 try:
     import jnius_config
 except:
     logger.error("jnius not installed !")
 else:
-    jnius_config.set_classpath('.', path.join(CURRENT_DIR,'merge.jar'))
+    jnius_config.set_classpath('.', path.join(CURRENT_DIR, 'lib/merge.jar'))
 
 from package_vcms.utils import none_null_stringNone
 
@@ -91,18 +98,10 @@ class FieldMeta(type):
 
 class Config(metaclass=FieldMeta):
     _SECTION='packaging'
-    _PACKAGE_TYPE_DB='DB'
-    _PACKAGE_TYPE_SYNC='SYNC'
-    _INSTALL_SCRIPT='resource/install_mysql_57.sh'
-    _SYNC_INSTALL_SCRIPT='resource/install.sh'
-    _SYNC_CHECK_SCRIPT='resource/check.sh'
-    _SYNC_PREDEFINE_SCRIPT='resource/predefine.sh'
-    _SYNC_SET_PARAM='resource/set_param.sh'
     mysql_gz_software_path:str
     mysql_cnf_path:str
     mysql_software_path:str
     mysql_seed_database_base:str
-    mysql_install_shell:str
     mysql_packaging_name:str
     mysql_sql_script_base_dir:str
     repo_url:str
@@ -119,6 +118,8 @@ class Config(metaclass=FieldMeta):
     work_dir_new:str
     download_repo:bool = False
     package_name:str
+    package_dir:str
+    repo_basedir:str
 
     def __init__(self):
         self._attributes = dict()
@@ -153,7 +154,7 @@ class Config(metaclass=FieldMeta):
             # self.work_dir = cp.get(self._SECTION,'work_dir',fallback=None)
 
     def check(self):
-        if none_null_stringNone(self.mysql_install_shell) or none_null_stringNone(self.mysql_packaging_name) or none_null_stringNone(self.mysql_seed_database_base)\
+        if  none_null_stringNone(self.mysql_packaging_name) or none_null_stringNone(self.mysql_seed_database_base)\
             or none_null_stringNone(self.mysql_conn_port) or none_null_stringNone(self.mysql_sql_script_base_dir) or none_null_stringNone(self.mysql_conn_password)\
             or none_null_stringNone(self.mysql_conn_username) or none_null_stringNone(self.mysql_software_path) :
             return False
@@ -202,3 +203,21 @@ def record_log(func):
         logger.debug('the end')
         return r
     return wrapper
+
+
+
+class ExceptionHook(object):
+    def __init__(self):
+        sys.excepthook = self.__HandleException
+
+    def __HandleException(self, excType, excValue, tb):
+        try:
+            logger.error(exc_info=(excType, excValue, tb))
+            logger.error(traceback.format_exception(excType, excValue, tb))
+
+        except:
+            pass
+        sys.__excepthook__(excType, excValue, tb)
+
+
+ExceptionHook()

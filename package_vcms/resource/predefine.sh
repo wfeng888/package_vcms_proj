@@ -16,7 +16,7 @@ get_param_value(){
 #$1 param_name
 #$2 cofig_file_name
 local param_row
-echo `grep -o -E ^[[:blank:]]*$1[[:blank:]]*=[[:blank:]]*[0-9.a-zA-Z_/-]+[[:blank:]]*  $2|cut -d '=' -f 2`
+echo `grep -o -E ^[[:blank:]]*$1[[:blank:]]*=[[:blank:]]*[0-9.a-zA-Z_/-@]+[[:blank:]]*  $2|cut -d '=' -f 2`
 }
 
 get_param_value_with_default(){

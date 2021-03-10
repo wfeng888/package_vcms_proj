@@ -31,9 +31,9 @@ class PlatFormFunc(object,metaclass=ABCMeta):
     def removeFile(self,filelist=()):
         for file in filelist:
             # r_fs = glob.iglob(file,recursive=False)
-            logger.debug('remove file %s'%file)
+            logger.info('remove file %s'%file)
             for r_f in glob.iglob(file,recursive=False):
-                logger.debug('remove real file %s'%r_f)
+                logger.info('remove real file %s'%r_f)
                 os.remove(r_f)
 
 
