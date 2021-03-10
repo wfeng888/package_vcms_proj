@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 from abc import ABCMeta, abstractmethod
 from os import path
 from shutil import copyfile, copytree, rmtree
@@ -80,7 +81,13 @@ class BuildMysql(Build):
     @record_log
     def _initDB(self):
         if (not self.config.stage & STAGE_INIT_SEEDDB):
+            #将mysql软件gz包解压到work_new目录，并在其中创建data、var、log目录
+            subprocess.run()
+            #生成my.cnf配置文件
+            #初始化数据库，initialize_insecure、创建用户
+            #使用新值重置config中的配置变量
             pass
+
 
     @record_log
     def _getSQLScripts(self):

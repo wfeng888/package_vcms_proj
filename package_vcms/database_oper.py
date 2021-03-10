@@ -58,6 +58,10 @@ class DatabaseInterface(object,metaclass=ABCMeta):
         logger.debug(utils.getLine(res.stdout))
         return utils.getLine(res.stdout)
 
+    @abstractmethod
+    def initService(self):
+        pass
+
 
 class MysqlOper(DatabaseInterface):
 
@@ -110,6 +114,11 @@ class MysqlOper(DatabaseInterface):
         if self._startProcess:
             self._startProcess.kill()
             self._startProcess = None
+
+
+
+    @record_log
+    def initService(self):
 
 
 

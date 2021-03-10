@@ -1,4 +1,5 @@
 import logging
+import re
 import sys
 import traceback
 from configparser import ConfigParser
@@ -40,6 +41,16 @@ else:
 
 from package_vcms.utils import none_null_stringNone
 
+def substitute_var(iself,value):
+    _match_obj = None
+    _match_obj = re.search(r"(\$\{[^\}]+\})",value,re.IGNORECASE)
+    while(_match_obj):
+        _src = _match_obj.groups(0)
+        value = str.replace(_src,iself._attributes.get('_'+_src[2:-1],''))
+        _match_obj = re.search(r"(\$\{[^\}]+\})",value,re.IGNORECASE)
+    return value
+
+
 def getx(cname,iself):
     return iself._attributes.get(cname,None)
 
@@ -48,6 +59,7 @@ def setx(cname,cself, value):
     if value == None:
         cself._attributes[cname] = None
         return
+    value = substitute_var(cself,value)
     if isinstance(cls,int) or cls == int:
         if not none_null_stringNone(value):
             cself._attributes[cname] = int(value)
@@ -96,7 +108,16 @@ class FieldMeta(type):
         _addBaseAnnotations(bases)
         return type.__new__(cls,clsname,bases,dicts)
 
-class Config(metaclass=FieldMeta):
+class ABSConfig(object,metaclass=FieldMeta):
+    def setData(self,cp:ConfigParser):
+        if cp:
+            _getx = partial(cp.get,self._SECTION)
+            # t = _getx('mysql_gz_software_path',fallback=None)
+            for i in self._attribute_names:
+                if _getx(i,fallback=None):
+                    setattr(self,i,_getx(i,fallback=None))
+
+class Config(ABSConfig):
     _SECTION='packaging'
     mysql_gz_software_path:str
     mysql_cnf_path:str
@@ -129,29 +150,6 @@ class Config(metaclass=FieldMeta):
         for k,v in self._attributes.items():
             res += '%s:%s,'%(k,v)
         return res
-
-    def setData(self,cp:ConfigParser):
-        if cp:
-            _getx = partial(cp.get,self._SECTION)
-            # t = _getx('mysql_gz_software_path',fallback=None)
-            for i in self._attribute_names:
-                setattr(self,i,_getx(i,fallback=None))
-            # self.mysql_gz_software_path = cp.get(self._SECTION,'mysql_gz_software_path',fallback=None)
-            # self.mysql_cnf_path = cp.get(self._SECTION,'mysql_cnf_path',fallback=None)
-            # self.mysql_seed_database_base = cp.get(self._SECTION,'mysql_seed_database_base',fallback=None)
-            # self.mysql_install_shell = cp.get(self._SECTION,'mysql_install_shell',fallback=None)
-            # self.mysql_packaging_name = cp.get(self._SECTION,'mysql_packaging_name',fallback=None)
-            # self.mysql_sql_script_base_dir = cp.get(self._SECTION,'mysql_sql_script_base_dir',fallback=None)
-            # self.svn_user = cp.get(self._SECTION,'svn_user',fallback=None)
-            # self.svn_password = cp.get(self._SECTION,'svn_password',fallback=None)
-            # self.svn_url = cp.get(self._SECTION,'svn_url',fallback=None)
-            # self.mysql_conn_username = cp.get(self._SECTION,'mysql_conn_username',fallback=None)
-            # self.mysql_conn_password = cp.get(self._SECTION,'mysql_conn_password',fallback=None)
-            # self.mysql_conn_port = cp.get(self._SECTION,'mysql_conn_port',fallback=None)
-            # self.database_lang = cp.get(self._SECTION,'database_lang',fallback=None)
-            # self.character_set_server = cp.get(self._SECTION,'character_set_server',fallback=None)
-            # self.mysql_software_path = cp.get(self._SECTION,'mysql_software_path',fallback=None)
-            # self.work_dir = cp.get(self._SECTION,'work_dir',fallback=None)
 
     def check(self):
         if  none_null_stringNone(self.mysql_packaging_name) or none_null_stringNone(self.mysql_seed_database_base)\
