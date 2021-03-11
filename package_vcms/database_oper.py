@@ -2,6 +2,7 @@ import logging
 import os
 import subprocess
 from abc import ABCMeta, abstractmethod
+from configparser import ConfigParser
 from os import path
 
 from package_vcms import utils, record_log, WIN
@@ -115,11 +116,42 @@ class MysqlOper(DatabaseInterface):
             self._startProcess.kill()
             self._startProcess = None
 
-
-
     @record_log
     def initService(self):
+        mysqld = path.join(self.config.mysql_software_path.rpartition(os.path.sep)[0],'mysqld')
+        # stdout = None
+        # stderr = None
+        # with subprocess.Popen([mysqld, '--defaults-file=' + self.config.mysql_cnf_path, '--initialize-insecure'],shell=False,encoding='utf8',stderr=subprocess.PIPE,stdout=subprocess.PIPE,user='mysql') as _process:
+        #     try:
+        #         stdout, stderr = _process.communicate()
+        #     except subprocess.TimeoutExpired as exc:
+        #         _process.kill()
+        #         if WIN:
+        #             # Windows accumulates the output in a single blocking
+        #             # read() call run on child threads, with the timeout
+        #             # being done in a join() on those threads.  communicate()
+        #             # _after_ kill() is required to collect that and add it
+        #             # to the exception.
+        #             exc.stdout, exc.stderr = _process.communicate()
+        #         else:
+        #             # POSIX _communicate already populated the output so
+        #             # far into the TimeoutExpired exception.
+        #             _process.wait()
+        #         raise
+        #     except:  # Including KeyboardInterrupt, communicate handled that.
+        #         _process.kill()
+        #         # We don't call process.wait() as .__exit__ does that for us.
+        #         raise
+        #     retcode = _process.poll()
 
+        _result: subprocess.CompletedProcess = subprocess.run([mysqld, '--defaults-file=' + self.config.mysql_cnf_path, '--initialize-insecure'], shell=False,encoding='utf8',**{'user':'mysql'})
+        if _result.stdout:
+            print(utils.getLine(_result.stdout))
+        if _result.stderr:
+            print(utils.getLine(_result.stderr))
+        print(_result.returncode)
+        _result.check_returncode()
+        assert _result.returncode == 0
 
 
 

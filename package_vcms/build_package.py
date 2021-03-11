@@ -1,17 +1,21 @@
 import logging
 import os
+import shutil
 import subprocess
 from abc import ABCMeta, abstractmethod
+from configparser import ConfigParser
 from os import path
 from shutil import copyfile, copytree, rmtree
 
 from package_vcms import STAGE_DOWNLOAD_REPO, MergeSqlFileException, CURRENT_DIR, MysqlRunningException, \
-    IncorrectOSUser, STAGE_INIT_SEEDDB, record_log
+    IncorrectOSUser, STAGE_INIT_SEEDDB, record_log, WIN, LINUX
 from package_vcms.database_oper import MysqlOper
 from package_vcms.git_tools import Mgit
 from package_vcms.merge import merge_sql
+from package_vcms.mysql.config import MysqlServerConfig
+from package_vcms.mysql.constants import MYSQL57_CNF_VAR_PREFERENCE
 from package_vcms.platform_func import platform_functool
-from package_vcms.utils import path_join
+from package_vcms.utils import path_join, getUnArchiveFileName, IsOpen
 
 logger = logging.getLogger(__file__)
 
@@ -20,8 +24,9 @@ class Build(object,metaclass=ABCMeta):
     _PACKAGE_TYPE_DB='DB'
     _PACKAGE_TYPE_SYNC='SYNC'
 
-    def __init__(self,pconfig):
+    def __init__(self,pconfig,pcp):
         self.config = pconfig
+        self.cp = pcp
 
     @abstractmethod
     def buildPackege(self):
@@ -55,8 +60,8 @@ class BuildMysql(Build):
     _SYNC_CHECK_SCRIPT='check.sh'
     _SYNC_PREDEFINE_SCRIPT='predefine.sh'
     _SYNC_SET_PARAM='set_param.sh'
-    def __init__(self,pconfig):
-        super(BuildMysql, self).__init__(pconfig)
+    def __init__(self,pconfig,pcp):
+        super(BuildMysql, self).__init__(pconfig,pcp)
         #self.lang
         # 1 en
         # 0 zh
@@ -64,6 +69,7 @@ class BuildMysql(Build):
         self._startProcess = None
         self._mysqlOper = MysqlOper(pconfig)
         self._sqlScriptsList:list = None
+        self._mysqlServerConfig = MysqlServerConfig()
 
     @record_log
     def downloadRepo(self):
@@ -78,16 +84,48 @@ class BuildMysql(Build):
             logger.error('MergeSqlFileException')
             raise MergeSqlFileException()
 
+    def getIdlePort(self):
+        i = 3308;
+        for i in range(3308,3200):
+            if not IsOpen(i):
+                return i
+
+
     @record_log
     def _initDB(self):
         if (not self.config.stage & STAGE_INIT_SEEDDB):
             #将mysql软件gz包解压到work_new目录，并在其中创建data、var、log目录
-            subprocess.run()
-            #生成my.cnf配置文件
-            #初始化数据库，initialize_insecure、创建用户
-            #使用新值重置config中的配置变量
-            pass
+            shutil.unpack_archive(self.config.mysql_gz_software_path,self.config.work_dir_new)
+            assert WIN or LINUX
+            _filename = getUnArchiveFileName(self.config.mysql_gz_software_path)
+            if LINUX:
+                _old_dir = path.join(self.config.work_dir_new,_filename)
 
+            else:
+                _old_dir = path.join(self.config.work_dir_new,_filename,_filename)
+            self.config.mysql_seed_database_base = path.join(path.dirname(_old_dir),self.config.package_name)
+            self.config.package_dir = self.config.mysql_seed_database_base
+            self.config.work_dir_new = path.dirname(self.config.mysql_seed_database_base)
+            os.rename(_old_dir,self.config.mysql_seed_database_base)
+            for i in ('data','var','log'):
+                os.mkdir(path.join(self.config.mysql_seed_database_base,i))
+            self._mysqlServerConfig.port = self.getIdlePort()
+            self._mysqlServerConfig.basedir = self.config.mysql_seed_database_base
+            self.config.mysql_software_path = path.join(self.config.mysql_seed_database_base,'bin','mysql')
+            #生成my.cnf配置文件
+            self.makeCnf()
+            #初始化数据库 initialize_insecure，修改目录权限，起库，创建用户
+            self._mysqlOper.initService()
+            _dirname = self.config.mysql_seed_database_base
+            if LINUX:
+                while(_dirname != os.path.sep):
+                    os.chmod(_dirname,777)
+                    _dirname = os.path.dirname(_dirname)
+                shutil.chown(self.config.mysql_seed_database_base,'mysql','mysql')
+            _old_pwd = self.config.mysql_conn_password
+            self.config.mysql_conn_password = None
+            self._mysqlOper.execSql(sql='create user root identified by \'%s\' ; alter user root@\'localhost\' identified by \'%s\' ; flush privileges ;'%(_old_pwd,_old_pwd))
+            self.config.mysql_conn_password = _old_pwd
 
     @record_log
     def _getSQLScripts(self):
@@ -176,8 +214,9 @@ class BuildMysql(Build):
         logger.info('stop mysql process. ')
         self._mysqlOper.stopService()
         logger.info('copy packaing file. ')
-        copytree(self.config.mysql_seed_database_base,self.config.package_dir,symlinks=True)
-        copyfile(path.join(CURRENT_DIR,'resource',BuildMysql._INSTALL_SCRIPT),path.join(self.config.work_dir_new,BuildMysql._INSTALL_SCRIPT))
+        if (not self.config.stage & STAGE_INIT_SEEDDB):
+            copytree(self.config.mysql_seed_database_base,self.config.package_dir,symlinks=True)
+            copyfile(path.join(CURRENT_DIR,'resource',BuildMysql._INSTALL_SCRIPT),path.join(self.config.work_dir_new,BuildMysql._INSTALL_SCRIPT))
         # 删除log目录下，除log.err之外的其它日志文件
         logger.debug(path.join(self.config.package_dir,'log','*'))
         _logdir = path.join(self.config.package_dir,'log')
@@ -207,3 +246,23 @@ class BuildMysql(Build):
         rmtree(self.config.package_name)
         #shell也不要了
         os.remove(BuildMysql._INSTALL_SCRIPT)
+
+
+    @record_log
+    def makeCnf(self):
+        cnf = ConfigParser(allow_no_value=True)
+        _ov = None
+        _ov = None
+        cnf.add_section(self._mysqlServerConfig._SECTION)
+        for option in MYSQL57_CNF_VAR_PREFERENCE[self._mysqlServerConfig._SECTION]:
+            if isinstance(option,(list,tuple)) :
+                _op = (option[1] or option[0]).replace('-','_')
+            else:
+                _op = option.replace('-','_')
+            _ov = getattr(self._mysqlServerConfig,_op,None)
+            if _ov:
+                cnf.set(self._mysqlServerConfig._SECTION,_op,str(_ov))
+        self.config.mysql_cnf_path = path.join(self.config.mysql_seed_database_base,'my.cnf')
+        with open(self.config.mysql_cnf_path,'x',encoding='utf-8') as wf:
+            cnf.write(wf)
+        assert path.exists(self.config.mysql_cnf_path)

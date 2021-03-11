@@ -42,24 +42,28 @@ else:
 from package_vcms.utils import none_null_stringNone
 
 def substitute_var(iself,value):
-    _match_obj = None
-    _match_obj = re.search(r"(\$\{[^\}]+\})",value,re.IGNORECASE)
-    while(_match_obj):
-        _src = _match_obj.groups(0)
-        value = str.replace(_src,iself._attributes.get('_'+_src[2:-1],''))
+    if value and isinstance(value,str):
+        _match_obj = None
         _match_obj = re.search(r"(\$\{[^\}]+\})",value,re.IGNORECASE)
+        while(_match_obj):
+            _src = _match_obj.groups(0)[0]
+            m = iself._attributes.get('_'+_src[2:-1],'')
+            if not m:
+                m = iself.__class__._defaults.get(_src[2:-1])
+            print('_src=%s,m=%s'%(_src,m))
+            value = value.replace(_src,str(m))
+            _match_obj = re.search(r"(\$\{[^\}]+\})",value,re.IGNORECASE)
     return value
 
 
 def getx(cname,iself):
-    return iself._attributes.get(cname,None)
+    return substitute_var(iself,iself._attributes.get(cname,None) or iself.__class__._defaults.get(cname[1:]))
 
 def setx(cname,cself, value):
     cls = cself.__class__.__annotations__[cname]
     if value == None:
         cself._attributes[cname] = None
         return
-    value = substitute_var(cself,value)
     if isinstance(cls,int) or cls == int:
         if not none_null_stringNone(value):
             cself._attributes[cname] = int(value)
@@ -78,6 +82,7 @@ def setx(cname,cself, value):
         cself._attributes[cname] = True if value and str(value).upper() == 'TRUE' else False
     else:
         cself._attributes[cname] = value
+    return True
 
 
 class FieldMeta(type):
@@ -90,9 +95,17 @@ class FieldMeta(type):
                             dicts['__annotations__'][key] = parent.__dict__['__annotations__'][key]
                     if hasattr(parent,'__dict__') and parent.__dict__.get('_attribute_names',None):
                         dicts['_attribute_names'].update(parent.__dict__.get('_attribute_names'))
+                    if hasattr(parent,'__dict__') and parent.__dict__.get('_defaults',None):
+                        dicts['_defaults'].update(parent.__dict__.get('_defaults'))
                     _addBaseAnnotations(parent.__bases__)
         names = []
+        # 将dicts['_attributes']挪到类的__init__()函数进行初始化，是因为如果再这里声明，则dict[_attributes]则为属性为
+        # 类的属性，后续就不能使用类的多个instance，因为在任一个instance中改了dict[_attributes]['']的值，则所有instance
+        # 获取的值都改变了，因为根据setter和getter方法，所有的instance都获取的是同一个dict[_attributes]['']值。
         # dicts['_attributes'] = dict()
+        #加一个_defaults属性，来保存默认值，例如var_name:str = 'var_value'这种，其中的var_value是没法保存起来的。
+        # 会被替换为getter/setter函数
+        dicts['_defaults'] = dict()
         dicts['_attribute_names'] = set()
         if not dicts.get('__annotations__',None):
             dicts['__annotations__'] = {}
@@ -102,6 +115,7 @@ class FieldMeta(type):
         for name in names:
             getter = partial(getx,'_'+name)
             setter = partial(setx,'_'+name)
+            dicts['_defaults'][name] = dicts.get(name,None)
             dicts[name] = property(getter,setter)
             dicts['_attribute_names'].add(name)
             dicts['__annotations__']['_'+name] = dicts['__annotations__'][name]
@@ -109,6 +123,48 @@ class FieldMeta(type):
         return type.__new__(cls,clsname,bases,dicts)
 
 class ABSConfig(object,metaclass=FieldMeta):
+    _SECTION='none'
+    def __init__(self):
+        self._attributes = dict()
+
+    def __repr__(self):
+        vs = {}
+        for k in self._attribute_names:
+            if k.find('password') < 0:
+                vs[k] = getattr(self,k)
+        return vs.__repr__()
+
+    def copy(self,target=None):
+        cls = self.__class__
+        if not target:
+            target = cls()
+        for k in self._attribute_names:
+            setattr(target,k,getattr(self,k,None))
+        return target
+
+    def update(self,source):
+        if source:
+            for k in (set(self._attribute_names) & set(source._attribute_names)):
+                setattr(self,k,getattr(source,k,None))
+
+    def fieldsNotNull(self):
+        for k in self._attribute_names:
+            if not getattr(self,k,None):
+                return False
+        return True
+
+    def resetFields(self):
+        for k in dir(self.__class__):
+            if  not k.startswith('_') and not callable(getattr(self,k)) :
+                setattr(self,k,None)
+
+    def check_enum(self,name):
+        if hasattr(self,name):
+            if hasattr(self,'__'+name):
+                return False if getattr(self,name) not in (getattr(self,'__'+name)).get('options') else True
+            return True
+        return False
+
     def setData(self,cp:ConfigParser):
         if cp:
             _getx = partial(cp.get,self._SECTION)
@@ -120,30 +176,27 @@ class ABSConfig(object,metaclass=FieldMeta):
 class Config(ABSConfig):
     _SECTION='packaging'
     mysql_gz_software_path:str
-    mysql_cnf_path:str
-    mysql_software_path:str
+    mysql_cnf_path:str    = '${mysql_seed_database_base}/my.cnf'
+    mysql_software_path:str  = '${mysql_seed_database_base}/bin/mysql'
     mysql_seed_database_base:str
     mysql_packaging_name:str
     mysql_sql_script_base_dir:str
-    repo_url:str
-    mysql_conn_username:str
+    repo_url:str              = 'git@10.45.156.100:SCMS-IV/DB.git'
+    mysql_conn_username:str   = 'root'
     mysql_conn_password:str
-    mysql_conn_port:int
+    mysql_conn_port:int       = '3306'
     #database_lang=en/zh
     database_lang:str
     work_dir:str
-    character_set_server:str
+    character_set_server:str  = 'utf8'
     log_level:str
     package_type:str
-    stage:int
+    stage:int                 = 0
     work_dir_new:str
     download_repo:bool = False
     package_name:str
     package_dir:str
     repo_basedir:str
-
-    def __init__(self):
-        self._attributes = dict()
 
     def __repr__(self):
         res = ''
@@ -189,6 +242,9 @@ class IncorrectOSUser(PackageException):
 class MysqlRunningException(PackageException):
     msg = 'mysql not running and start failed. '
 
+
+class UnknownFileFormatException(PackageException):
+    msg = 'file format is unknown. '
 
 def record_log(func):
     @wraps(func)

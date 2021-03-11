@@ -13,10 +13,10 @@ logger = logging.getLogger(__file__)
 
 class Packaging():
     def __init__(self):
-        cp = ConfigParser(allow_no_value=True)
-        cp.read(path.join(CURRENT_DIR, 'conf/config.ini'), encoding='utf-8')
+        self.cp = ConfigParser(allow_no_value=True)
+        self.cp.read(path.join(CURRENT_DIR, 'conf/config.ini'), encoding='utf-8')
         self.config = Config()
-        self.config.setData(cp)
+        self.config.setData(self.cp)
         if not self.config.work_dir:
             self.config.work_dir = CURRENT_DIR
         if not none_null_stringNone(self.config.log_level) and logging._nameToLevel.get(self.config.log_level.upper(),None):
@@ -38,7 +38,7 @@ class Packaging():
 
     def packaging(self):
         self.prepare()
-        _build = BuildMysql(self.config)
+        _build = BuildMysql(self.config,self.cp)
         _build.build()
         #将最后的gz包copy到latest文件夹下，方便进一步处理
         logger.info('copy package to lastest. ')
@@ -46,3 +46,8 @@ class Packaging():
         if not os.path.exists(path.join(self.config.work_dir,'latest')):
             os.mkdir(path.join(self.config.work_dir,'latest'))
         copyfile(path.join(self.config.work_dir_new,'%s.tar.gz'%self.config.package_name),path.join(self.config.work_dir,'latest','%s.tar.gz'%self.config.package_name))
+
+
+
+if '__main__' == __name__:
+    Packaging().packaging()

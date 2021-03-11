@@ -1,8 +1,10 @@
+from os import path
 import sys
 import time
 import traceback
 import types
 import codecs
+import socket
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
@@ -352,3 +354,28 @@ def formatErrorMsg(e):
         return 'errno:{},msg:{},args:{}'.format(str(e.errno),e.msg,e.args)
     except BaseException:
         return traceback.format_exc()
+
+
+
+def getUnArchiveFileName(filepath):
+    _filename = path.basename(filepath)
+    _sub = 0
+    if _filename.endswith('.tar.gz'):
+        _sub = -7
+    elif _filename.endswith('.zip'):
+        _sub = -4
+    return _filename[:_sub]
+
+def IsOpen(ip,port):
+    s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    try:
+        s.connect((ip,int(port)))
+        return True
+    except:
+        return False
+    finally:
+        try:
+            s.shutdown(socket.SHUT_RDWR)
+            s.close()
+        except:
+            pass
