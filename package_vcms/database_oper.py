@@ -144,7 +144,7 @@ class MysqlOper(DatabaseInterface):
         #         raise
         #     retcode = _process.poll()
 
-        _result: subprocess.CompletedProcess = subprocess.run([mysqld, '--defaults-file=' + self.config.mysql_cnf_path, '--initialize-insecure'], shell=False,encoding='utf8',**{'user':'mysql'})
+        _result: subprocess.CompletedProcess = subprocess.run([mysqld, '--defaults-file=' + self.config.mysql_cnf_path, '--initialize-insecure'], shell=False,encoding='utf8')
         if _result.stdout:
             print(utils.getLine(_result.stdout))
         if _result.stderr:
