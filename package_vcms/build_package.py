@@ -178,14 +178,12 @@ class BuildMysql(Build):
         for i in os.listdir(os.path.join(CURRENT_DIR,'resource')) :
             if i.endswith('.sh'):
                 copyfile(path.join(CURRENT_DIR,'resource',i),path.join(self.config.package_dir,i))
-        #切换到打包目录
-        os.chdir(self.config.work_dir_new)
         #直接打一个gz包
         logger.debug('package %s'% self.config.package_name+'.tar.gz')
-        self.config.gz_package_path = platform_functool.gz(self.config.package_name+'.tar.gz',(self.config.package_name,))
+        self.config.gz_package_path = platform_functool.gz(self.config.package_dir,path.dirname(self.config.package_dir))
         #工作目录中的打包文件不用了，删掉
         logger.debug('remove %s'%self.config.package_name)
-        rmtree(self.config.package_name)
+        rmtree(self.config.package_dir)
 
     @record_log
     def _checkSeedCorrect(self):

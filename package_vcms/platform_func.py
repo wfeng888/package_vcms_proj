@@ -47,7 +47,7 @@ class CentOSPlatFormFunc(PlatFormFunc):
     # def gz(self,target,files=()):
         assert not ar_base
         cmd = 'tar -czpf '
-        if getUnArchiveFileName(target) != os.path.dirname(target):
+        if getUnArchiveFileName(target) != os.path.basename(target):
             target += self._gz_suffix
         return self.tar(target,ar_root,None,cmd)
 
@@ -57,7 +57,7 @@ class CentOSPlatFormFunc(PlatFormFunc):
         if not cmd:
             cmd = 'tar -cpf '
         print(getUnArchiveFileName(target))
-        if getUnArchiveFileName(target) != os.path.dirname(target):
+        if getUnArchiveFileName(target) != os.path.basename(target):
             target += self._tar_suffix
         cmd += ' ' + target
         # if not isinstance(files,(tuple,list)):
