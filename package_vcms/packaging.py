@@ -45,7 +45,7 @@ class Packaging():
         if  os.path.exists(path.join(self.config.work_dir,'latest')):
             rmtree(path.join(self.config.work_dir,'latest'))
         os.mkdir(path.join(self.config.work_dir,'latest'))
-        copyfile(path.join(self.config.work_dir_new,'%s.tar.gz'%self.config.package_name),path.join(self.config.work_dir,'latest','%s.tar.gz'%self.config.package_name))
+        copyfile(self.config.gz_package_path,path.join(self.config.work_dir,'latest',path.basename(self.config.gz_package_path)))
 
 
 
