@@ -2,11 +2,12 @@ import logging
 import os
 import subprocess
 from abc import ABCMeta, abstractmethod
-from configparser import ConfigParser
 from os import path
+from threading import Thread
 
 from package_vcms import utils, record_log, WIN
 from package_vcms.platform_func import platform_functool
+from package_vcms.utils import format_exc
 
 logger = logging.getLogger(__file__)
 class DatabaseInterface(object,metaclass=ABCMeta):
@@ -32,7 +33,7 @@ class DatabaseInterface(object,metaclass=ABCMeta):
 
     @record_log
     def isShutdown(self):
-        return not platform_functool.portBusy(self.config.mysql_conn_port)
+        return not utils.IsOpen(self.config.mysql_conn_port)
 
 
     @abstractmethod
@@ -85,7 +86,10 @@ class MysqlOper(DatabaseInterface):
         else:
             return None
         logger.debug('execute %s'%cmd)
-        res = subprocess.run(cmd,capture_output=True,shell=True,encoding='utf8')
+        _encoding = 'utf8'
+        if WIN:
+            _encoding = 'cp936'
+        res = subprocess.run(cmd,capture_output=True,shell=True,encoding=_encoding)
         return res
 
     @record_log
@@ -95,15 +99,14 @@ class MysqlOper(DatabaseInterface):
     @record_log
     def startService(self):
         logger.info('start Mysql Database. ')
-        cnf = path.join(self.config.mysql_seed_database_base,'my.cnf')
+        cnf = path.join(self.config.mysql_seed_database_base,self.config.cnf_name)
         if WIN:
-            mysqld = path.join(self.config.mysql_software_path.rpartition(os.path.sep)[0],'mysqld')
-            self._startProcess = subprocess.Popen([mysqld,'--defaults-file=' + cnf],shell=True,encoding='utf8')
-            return self._startProcess
+            mysqld = path.join(path.dirname(self.config.mysql_software_path),'mysqld')
+            return subprocess.Popen([mysqld,'--defaults-file=' + cnf],shell=True,encoding='utf8')
         else:
-            mysqld_safe = path.join(self.config.mysql_software_path.rpartition(os.path.sep)[0],'mysqld_safe')
+            mysqld_safe = path.join(path.dirname(self.config.mysql_software_path),'mysqld_safe')
             self._startProcess = subprocess.Popen([mysqld_safe,'--defaults-file=' + cnf + ' & '],shell=True,encoding='utf8')
-            return self._startProcess
+        return self._startProcess
 
     @record_log
     def stopService(self):
@@ -146,10 +149,10 @@ class MysqlOper(DatabaseInterface):
 
         _result: subprocess.CompletedProcess = subprocess.run([mysqld, '--defaults-file=' + self.config.mysql_cnf_path, '--initialize-insecure'], shell=False,encoding='utf8')
         if _result.stdout:
-            print(utils.getLine(_result.stdout))
+            logger.info(utils.getLine(_result.stdout))
         if _result.stderr:
-            print(utils.getLine(_result.stderr))
-        print(_result.returncode)
+            logger.info(utils.getLine(_result.stderr))
+        logger.info(_result.returncode)
         _result.check_returncode()
         assert _result.returncode == 0
 

@@ -29,14 +29,13 @@ class LogGitProgress(RemoteProgress):
     }
 
     def getFlag(self,code):
-        _flag = None
+        _flag = ''
         for i in self.code_flags.keys():
-            if self.code_flags.get(i,None) & code:
+            if self.code_flags.get(i & code,None) :
                 _flag += self.code_flags.get(i,None) + '|'
         return _flag or 'Unknown'
 
     def update(self, op_code, cur_count, max_count=None, message=''):
-        logger.debug('op=%s, cc=%s, max_count=%s, message=%s'%(op_code,cur_count,max_count,message))
         if(op_code != self._last_code or cur_count != self._last_count):
             self._last_code = op_code
             self._last_count = cur_count

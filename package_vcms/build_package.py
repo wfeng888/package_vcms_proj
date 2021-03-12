@@ -1,7 +1,7 @@
 import logging
 import os
 import shutil
-import subprocess
+import stat
 from abc import ABCMeta, abstractmethod
 from configparser import ConfigParser
 from os import path
@@ -15,7 +15,7 @@ from package_vcms.merge import merge_sql
 from package_vcms.mysql.config import MysqlServerConfig
 from package_vcms.mysql.constants import MYSQL57_CNF_VAR_PREFERENCE
 from package_vcms.platform_func import platform_functool
-from package_vcms.utils import path_join, getUnArchiveFileName, IsOpen
+from package_vcms.utils import  getUnArchiveFileName, IsOpen
 
 logger = logging.getLogger(__file__)
 
@@ -75,7 +75,7 @@ class BuildMysql(Build):
     def downloadRepo(self):
         super(BuildMysql, self).downloadRepo()
         if self.config.download_repo:
-            self.config.mysql_sql_script_base_dir = path_join(self.config.repo_basedir,('mysql','scimdb_objects'))
+            self.config.mysql_sql_script_base_dir = path.join(self.config.repo_basedir,'mysql','scimdb_objects')
 
 
     @record_log
@@ -84,10 +84,11 @@ class BuildMysql(Build):
             logger.error('MergeSqlFileException')
             raise MergeSqlFileException()
 
+    @record_log
     def getIdlePort(self):
-        i = 3308;
-        for i in range(3308,3200):
+        for i in range(3308,3400):
             if not IsOpen(i):
+                logger.debug('use port%s'%i)
                 return i
 
 
@@ -98,18 +99,19 @@ class BuildMysql(Build):
             shutil.unpack_archive(self.config.mysql_gz_software_path,self.config.work_dir_new)
             assert WIN or LINUX
             _filename = getUnArchiveFileName(self.config.mysql_gz_software_path)
-            if LINUX:
-                _old_dir = path.join(self.config.work_dir_new,_filename)
-
-            else:
-                _old_dir = path.join(self.config.work_dir_new,_filename,_filename)
-            self.config.mysql_seed_database_base = path.join(path.dirname(_old_dir),self.config.package_name)
+            # if LINUX:
+            #     _old_dir = path.join(self.config.work_dir_new,_filename)
+            # else:
+            #     _old_dir = path.join(self.config.work_dir_new,_filename,_filename)
+            self.config.mysql_seed_database_base = path.join(self.config.work_dir_new,self.config.package_name)
             self.config.package_dir = self.config.mysql_seed_database_base
             self.config.work_dir_new = path.dirname(self.config.mysql_seed_database_base)
-            os.rename(_old_dir,self.config.mysql_seed_database_base)
+            os.rename(path.join(self.config.work_dir_new,_filename),self.config.mysql_seed_database_base)
             for i in ('data','var','log'):
                 os.mkdir(path.join(self.config.mysql_seed_database_base,i))
             self._mysqlServerConfig.port = self.getIdlePort()
+            self.config.mysql_conn_port = self._mysqlServerConfig.port
+            logger.debug('self.config.mysql_conn_port=%s, self._mysqlServerConfig.port=%s'%(self.config.mysql_conn_port,self._mysqlServerConfig.port))
             self._mysqlServerConfig.basedir = self.config.mysql_seed_database_base
             self.config.mysql_software_path = path.join(self.config.mysql_seed_database_base,'bin','mysql')
             #生成my.cnf配置文件
@@ -119,12 +121,17 @@ class BuildMysql(Build):
             _dirname = self.config.mysql_seed_database_base
             if LINUX:
                 while(_dirname != os.path.sep):
-                    os.chmod(_dirname,777)
+                    os.chmod(_dirname,stat.S_IRWXO|stat.S_IRWXG|stat.S_IRWXU)
                     _dirname = os.path.dirname(_dirname)
-                shutil.chown(self.config.mysql_seed_database_base,'mysql','mysql')
+                platform_functool.exec_shell('chown -R mysql:mysql '+ self.config.mysql_seed_database_base)
             _old_pwd = self.config.mysql_conn_password
             self.config.mysql_conn_password = None
-            self._mysqlOper.execSql(sql='create user root identified by \'%s\' ; alter user root@\'localhost\' identified by \'%s\' ; flush privileges ;'%(_old_pwd,_old_pwd))
+            self._mysqlOper.startService()
+            self._mysqlOper.waitUntilAlive()
+            if not self._mysqlOper.isAlive():
+                logger.error('mysql not running and start failed, abort it! ')
+                raise MysqlRunningException()
+            self._mysqlOper.execSql(sql='create user root identified by \'%s\' ; grant all on *.* to root ; alter user root@\'localhost\' identified by \'%s\' ; flush privileges ;'%(_old_pwd,_old_pwd))
             self.config.mysql_conn_password = _old_pwd
 
     @record_log
@@ -143,8 +150,10 @@ class BuildMysql(Build):
     @record_log
     def _prepare(self):
         os.chdir(self.config.work_dir_new)
+        #windows现在不能解决jnius运行失败的问题，所以不能进行脚本合并。
         self.downloadRepo()
-        self._mergeSql()
+        if LINUX:
+            self._mergeSql()
         self._getSQLScripts()
         self._initDB()
 
@@ -154,33 +163,33 @@ class BuildMysql(Build):
         self._prepare()
         os.mkdir(self.config.package_dir)
         for i in self._sqlScriptsList:
-            copyfile(path_join(self.config.mysql_sql_script_base_dir,i),path_join(self.config.package_dir,path.split(i)[1]))
+            copyfile(path.join(self.config.mysql_sql_script_base_dir,i),path.join(self.config.package_dir,path.basename(i)))
         #生成一个安装配置文件,这个给shell脚本使用
-        with open(path_join(self.config.package_dir,'config.param'),'xt',encoding='utf8') as f:
+        with open(path.join(self.config.package_dir,'config.param'),'xt',encoding='utf8') as f:
             for i in ('mysql_sync_ip=','mysql_sync_port=','mysql_user=','mysql_passwd=','mysql_software_base=','ignore_error=Y','mysql_socket='):
                 f.write(i+'\n')
             f.flush()
         #生成一个安装配置文件,这个给python脚本使用
-        with open(path_join(self.config.package_dir,'config.ini'),'xt',encoding='utf8') as f:
+        with open(path.join(self.config.package_dir,'config.ini'),'xt',encoding='utf8') as f:
             for i in ('[install]','mysql_sync_ip=','mysql_sync_port=','mysql_user=','mysql_passwd=','mysql_software_base=','ignore_error=Y','mysql_socket='):
                 f.write(i+'\n')
             f.flush()
         #将shell安装脚本copy到安装包中
-        for i in [BuildMysql._SYNC_CHECK_SCRIPT,BuildMysql._SYNC_INSTALL_SCRIPT,BuildMysql._SYNC_PREDEFINE_SCRIPT, \
-                                 BuildMysql._SYNC_SET_PARAM]:
-            copyfile(path.join(CURRENT_DIR,'resource',i),path.join(self.config.package_dir,i))
+        for i in os.listdir(os.path.join(CURRENT_DIR,'resource')) :
+            if i.endswith('.sh'):
+                copyfile(path.join(CURRENT_DIR,'resource',i),path.join(self.config.package_dir,i))
         #切换到打包目录
         os.chdir(self.config.work_dir_new)
         #直接打一个gz包
         logger.debug('package %s'% self.config.package_name+'.tar.gz')
-        platform_functool.gz(self.config.package_name+'.tar.gz',(self.config.package_name,))
+        self.config.gz_package_path = platform_functool.gz(self.config.package_name+'.tar.gz',(self.config.package_name,))
         #工作目录中的打包文件不用了，删掉
         logger.debug('remove %s'%self.config.package_name)
         rmtree(self.config.package_name)
 
     @record_log
     def _checkSeedCorrect(self):
-        return self._mysqlOper.getVar('datadir').startswith(self.config.mysql_seed_database_base)
+        return self._mysqlOper.getVar('datadir').replace('\\','').startswith(path.join(self.config.mysql_seed_database_base,'data').replace('\\',''))
 
 
     @record_log
@@ -214,9 +223,8 @@ class BuildMysql(Build):
         logger.info('stop mysql process. ')
         self._mysqlOper.stopService()
         logger.info('copy packaing file. ')
-        if (not self.config.stage & STAGE_INIT_SEEDDB):
+        if  self.config.stage & STAGE_INIT_SEEDDB :
             copytree(self.config.mysql_seed_database_base,self.config.package_dir,symlinks=True)
-            copyfile(path.join(CURRENT_DIR,'resource',BuildMysql._INSTALL_SCRIPT),path.join(self.config.work_dir_new,BuildMysql._INSTALL_SCRIPT))
         # 删除log目录下，除log.err之外的其它日志文件
         logger.debug(path.join(self.config.package_dir,'log','*'))
         _logdir = path.join(self.config.package_dir,'log')
@@ -224,28 +232,34 @@ class BuildMysql(Build):
         _dellist = [path.join(_logdir,i) for i in os.listdir(_logdir) if '.err' != path.splitext(i)[1]]
         # 删除data目录下的redo日志文件，节省打包空间
         _datadir = path.join(self.config.package_dir,'data')
-        _dellist.append(path_join(_datadir,'ib_logfile*',path.sep))
+        _dellist.append(path.join(_datadir,'ib_logfile*'))
         #真正删除的地方
         platform_functool.removeFile(filelist=_dellist)
-        #切换到打包目录
-        os.chdir(self.config.work_dir_new)
+        # #切换到打包目录
+        # os.chdir(self.config.work_dir_new)
         logger.info('start packaging. ')
-        #先打一个tar包
-        logger.debug('package %s'% self.config.package_name+'.tar')
-        platform_functool.tar(self.config.package_name+'.tar',(self.config.package_name,))
-        #再打一个gz包，别问为什么package_type，安装脚本里面写死了要处理的是tar包，不是gz包
-        logger.debug('package %s'% self.config.package_name+'.tar.gz')
-        platform_functool.gz(self.config.package_name+'.tar.gz',(self.config.package_name+'.tar',BuildMysql._INSTALL_SCRIPT))
+        if LINUX:
+            #先打一个tar包
+            logger.debug('package %s'% self.config.package_dir+'.tar')
+            platform_functool.tar(self.config.package_dir,ar_root=path.dirname(self.config.package_dir))
+            rmtree(self.config.package_dir)
+            copyfile(path.join(CURRENT_DIR,'resource',BuildMysql._INSTALL_SCRIPT),path.join(self.config.work_dir_new,BuildMysql._INSTALL_SCRIPT))
+            #再打一个gz包，别问为什么package_type，安装脚本里面写死了要处理的是tar包，不是gz包
+            logger.debug('package %s'% self.config.package_name+'.tar.gz')
+            self.config.gz_package_path = platform_functool.gz(self.config.package_dir,ar_root=self.config.work_dir_new)
+            #tar包用完了，删掉
+            logger.debug('remove %s'%self.config.package_name+'.tar')
+            os.remove(self.config.package_name+'.tar')
+            #shell也不要了
+            os.remove(BuildMysql._INSTALL_SCRIPT)
+        else:
+            for i in os.listdir(os.path.join(CURRENT_DIR,'resource')) :
+                if i.endswith('.bat'):
+                    copyfile(path.join(CURRENT_DIR,'resource',i),path.join(self.config.package_dir,i))
+            self.config.gz_package_path = platform_functool.gz(self.config.package_dir)
+            rmtree(self.config.package_dir)
         logger.info('finish packaging. ')
         logger.info('purge garbage. ')
-        #tar包用完了，删掉
-        logger.debug('remove %s'%self.config.package_name+'.tar')
-        os.remove(self.config.package_name+'.tar')
-        #工作目录中的打包文件也不用了，删掉
-        logger.debug('remove %s'%self.config.package_name)
-        rmtree(self.config.package_name)
-        #shell也不要了
-        os.remove(BuildMysql._INSTALL_SCRIPT)
 
 
     @record_log
@@ -262,7 +276,8 @@ class BuildMysql(Build):
             _ov = getattr(self._mysqlServerConfig,_op,None)
             if _ov:
                 cnf.set(self._mysqlServerConfig._SECTION,_op,str(_ov))
-        self.config.mysql_cnf_path = path.join(self.config.mysql_seed_database_base,'my.cnf')
+
+        self.config.mysql_cnf_path = path.join(self.config.mysql_seed_database_base,self.config.cnf_name)
         with open(self.config.mysql_cnf_path,'x',encoding='utf-8') as wf:
             cnf.write(wf)
         assert path.exists(self.config.mysql_cnf_path)

@@ -1,3 +1,4 @@
+import logging
 from os import path
 import sys
 import time
@@ -5,6 +6,8 @@ import traceback
 import types
 import codecs
 import socket
+
+from package_vcms import WIN
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
@@ -184,7 +187,7 @@ def to_bytes(obj, encoding='utf-8', errors=None, nonstring='simplerepr'):
     return to_bytes(value, encoding, errors)
 
 
-def to_text(obj, encoding='utf-8', errors=None, nonstring='simplerepr'):
+def to_text(obj, encoding='cp936' if WIN else 'utf-8' , errors=None, nonstring='simplerepr'):
     """Make sure that a string is a text string
 
     :arg obj: An object to make sure is a text string.  In most cases this
@@ -279,6 +282,13 @@ def getLine(content):
     if none_null_stringNone(_c):
         return None
     return _c.strip()
+
+def outres(logger,res):
+    assert logger
+    if res and res.stdout:
+        logger.info(getLine(res.stdout))
+    if res and res.stderr:
+        logger.info(getLine(res.stderr))
 #: :py:func:`to_native`
 #:      Transform a variable into the native str type for the python version
 #:
@@ -321,7 +331,7 @@ def formatDateTime():
     return formatDate('%Y%m%d%H%M%S')
 
 
-def path_join(basepath,suffixpath,sep='/'):
+def path_join(basepath,suffixpath,sep=path.sep):
     if not ( isNull(basepath) and isNull(suffixpath) ):
         if not isNull(basepath):
             basepath = basepath.strip()
@@ -364,9 +374,11 @@ def getUnArchiveFileName(filepath):
         _sub = -7
     elif _filename.endswith('.zip'):
         _sub = -4
+    elif _filename.endswith('.tar'):
+        _sub = -4
     return _filename[:_sub]
 
-def IsOpen(ip,port):
+def IsOpen(port,ip='localhost'):
     s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     try:
         s.connect((ip,int(port)))

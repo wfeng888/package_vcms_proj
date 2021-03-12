@@ -1,12 +1,12 @@
 [packaging]
 #用于没有种子库的情况下，自动初始化数据库，当 0 == stage & 2 时，会使用这里配置的软件进行数据库初始化。当前正在开发的功能
-mysql_gz_software_path=/usr/local/wf/mysql-5.7.31-el7-x86_64.tar.gz
+mysql_gz_software_path=D:\database\software\mysql-5.7.33-winx64.zip
 #使用种子库进行部署并打包，当前需要配置
-mysql_seed_database_base=/home/vcms/mysql
+mysql_seed_database_base=
 #打包名称
 mysql_packaging_name=mysql-{platform}-VCMS-3.0.{date}-{lang}-{type}_R1
 #已下载的svn脚本目录，需要指定到scimdb_objects这一级，当 0 == stage & 1 时，会自行从git下载代码，不使用这里的配置
-mysql_sql_script_base_dir=/dbpackage/DB/mysql/scimdb_objects
+mysql_sql_script_base_dir=D:\code\ZnvDB\git_vcms\DB\mysql\scimdb_objects
 #用于没有配置svn脚本目录的情况下，连接到repo地址进行下载，设置stage &= 0 生效，具体看下面stage配置项的说明。使用此功能需要在git上配置好ssh公钥
 repo_url=git@10.45.156.100:SCMS-IV/DB.git
 #种子库或者初始化库用户
@@ -18,14 +18,14 @@ mysql_conn_port=3308
 #部署的脚本语言，未配置默认中文 英文/中文=en/zh
 database_lang=zh
 #打包工作目录,未配置，默认为当前脚本目录
-work_dir=/dbpackage/output
+work_dir=D:\Temp
 #日志级别CRITICAL/ERROR/WARNING/INFO/DEBUG
 log_level=DEBUG
 #打包类型，DB/SYNC   DB:全功能的mysql数据库，包含数据库软件  SYNC:包含数据库脚本，用于将脚本部署到已存在的数据库上
 package_type=DB
 #打包开始阶段配置：已下载repo代码=1，已初始化种子库=2。如果stage=1，则跳过从repo拉取代码步骤；如果stage=2，则跳过初始化种子库步骤；
 #如果stage=3，则跳过从repo拉取代码步骤以及初始化种子库步骤
-stage=1
+stage=0
 
 
 

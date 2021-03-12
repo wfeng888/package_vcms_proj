@@ -50,7 +50,6 @@ def substitute_var(iself,value):
             m = iself._attributes.get('_'+_src[2:-1],'')
             if not m:
                 m = iself.__class__._defaults.get(_src[2:-1])
-            print('_src=%s,m=%s'%(_src,m))
             value = value.replace(_src,str(m))
             _match_obj = re.search(r"(\$\{[^\}]+\})",value,re.IGNORECASE)
     return value
@@ -176,7 +175,7 @@ class ABSConfig(object,metaclass=FieldMeta):
 class Config(ABSConfig):
     _SECTION='packaging'
     mysql_gz_software_path:str
-    mysql_cnf_path:str    = '${mysql_seed_database_base}/my.cnf'
+    mysql_cnf_path:str    = '${mysql_seed_database_base}/${cnf_name}'
     mysql_software_path:str  = '${mysql_seed_database_base}/bin/mysql'
     mysql_seed_database_base:str
     mysql_packaging_name:str
@@ -197,6 +196,8 @@ class Config(ABSConfig):
     package_name:str
     package_dir:str
     repo_basedir:str
+    cnf_name:str       = 'my.ini' if WIN else 'my.cnf'
+    gz_package_path:str
 
     def __repr__(self):
         res = ''

@@ -7,7 +7,7 @@ from shutil import copyfile, rmtree
 from package_vcms import Config, CURRENT_DIR
 from package_vcms.build_package import BuildMysql
 from package_vcms.platform_func import platform_functool
-from package_vcms.utils import formatDate, formatDateTime, none_null_stringNone, path_join
+from package_vcms.utils import formatDate, formatDateTime, none_null_stringNone
 
 logger = logging.getLogger(__file__)
 
@@ -31,7 +31,7 @@ class Packaging():
         self.config.work_dir_new = path.join(self.config.work_dir,formatDateTime())
         os.mkdir(self.config.work_dir_new)
         self.config.package_name = self.config.mysql_packaging_name.format(platform=platform_functool.plat_form,date=formatDate(), \
-                                                                lang='english' if self.config.database_lang and self.config.database_lang.lower()=='en' else 'chinese', \
+                                                                lang='en' if self.config.database_lang and self.config.database_lang.lower()=='en' else 'cn', \
                                                                 type=self.config.package_type)
         self.config.package_dir = path.join(self.config.work_dir_new,self.config.package_name)
 
@@ -42,9 +42,9 @@ class Packaging():
         _build.build()
         #将最后的gz包copy到latest文件夹下，方便进一步处理
         logger.info('copy package to lastest. ')
-        rmtree(path.join(self.config.work_dir,'latest'))
-        if not os.path.exists(path.join(self.config.work_dir,'latest')):
-            os.mkdir(path.join(self.config.work_dir,'latest'))
+        if  os.path.exists(path.join(self.config.work_dir,'latest')):
+            rmtree(path.join(self.config.work_dir,'latest'))
+        os.mkdir(path.join(self.config.work_dir,'latest'))
         copyfile(path.join(self.config.work_dir_new,'%s.tar.gz'%self.config.package_name),path.join(self.config.work_dir,'latest','%s.tar.gz'%self.config.package_name))
 
 
