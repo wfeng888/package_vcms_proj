@@ -369,7 +369,7 @@ def formatErrorMsg(e):
 
 def getUnArchiveFileName(filepath):
     _filename = path.basename(filepath)
-    _sub = 0
+    _sub = len(_filename)
     if _filename.endswith('.tar.gz'):
         _sub = -7
     elif _filename.endswith('.zip'):

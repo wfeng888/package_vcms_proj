@@ -6,6 +6,7 @@ import subprocess
 import sys
 from abc import ABCMeta
 
+from package_vcms import record_log
 from package_vcms.utils import getUnArchiveFileName, outres
 
 logger = logging.getLogger(__file__)
@@ -24,7 +25,7 @@ class PlatFormFunc(object,metaclass=ABCMeta):
         shutil.make_archive(target,format=self._tar_format,root_dir = ar_root or target,base_dir=ar_base)
         return target + self._tar_suffix
 
-
+    @record_log
     def removeFile(self,filelist=()):
         for file in filelist:
             # r_fs = glob.iglob(file,recursive=False)
@@ -33,6 +34,7 @@ class PlatFormFunc(object,metaclass=ABCMeta):
                 logger.info('remove real file %s'%r_f)
                 os.remove(r_f)
 
+    @record_log
     def exec_shell(self,cmd):
         return subprocess.run(cmd,capture_output=True,shell=True,encoding='utf8')
 
@@ -43,21 +45,24 @@ class CentOSPlatFormFunc(PlatFormFunc):
         self.plat_form='linux'
 
     # linux使用shutil的库进行打包、压缩太慢了，还是使用原生的更快
-    def gz(self,target, ar_root=None, ar_base=None,cmd = None):
     # def gz(self,target,files=()):
+    @record_log
+    def gz(self,target, ar_root=None, ar_base=None,cmd = None):
         assert not ar_base
         cmd = 'tar -czpf '
-        if getUnArchiveFileName(target) != os.path.basename(target):
+        logger.debug('%s,%s'%(getUnArchiveFileName(target),os.path.basename(target)))
+        if getUnArchiveFileName(target) == os.path.basename(target):
             target += self._gz_suffix
         return self.tar(target,ar_root,None,cmd)
 
-    def tar(self,target, ar_root=None, ar_base=None,cmd = None):
     # def tar(self,target,files=(),cmd=None):
+    @record_log
+    def tar(self,target, ar_root=None, ar_base=None,cmd = None):
         assert not ar_base
         if not cmd:
             cmd = 'tar -cpf '
-        print(getUnArchiveFileName(target))
-        if getUnArchiveFileName(target) != os.path.basename(target):
+        logger.debug('%s,%s'%(getUnArchiveFileName(target),os.path.basename(target)))
+        if getUnArchiveFileName(target) == os.path.basename(target):
             target += self._tar_suffix
         cmd += ' ' + target
         # if not isinstance(files,(tuple,list)):

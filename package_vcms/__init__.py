@@ -247,6 +247,9 @@ class MysqlRunningException(PackageException):
 class UnknownFileFormatException(PackageException):
     msg = 'file format is unknown. '
 
+class ParamException(PackageException):
+    msg = 'there has something wrong in param. '
+
 def record_log(func):
     @wraps(func)
     def  wrapper(*args,**kwargs):

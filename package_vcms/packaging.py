@@ -30,7 +30,7 @@ class Packaging():
             os.mkdir(self.config.work_dir)
         self.config.work_dir_new = path.join(self.config.work_dir,formatDateTime())
         os.mkdir(self.config.work_dir_new)
-        self.config.package_name = self.config.mysql_packaging_name.format(platform=platform_functool.plat_form,date=formatDate(), \
+        self.config.package_name = self.config.mysql_packaging_name.format(platform=platform_functool.plat_form,date=formatDateTime(), \
                                                                 lang='en' if self.config.database_lang and self.config.database_lang.lower()=='en' else 'cn', \
                                                                 type=self.config.package_type)
         self.config.package_dir = path.join(self.config.work_dir_new,self.config.package_name)

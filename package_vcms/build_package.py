@@ -8,14 +8,14 @@ from os import path
 from shutil import copyfile, copytree, rmtree
 
 from package_vcms import STAGE_DOWNLOAD_REPO, MergeSqlFileException, CURRENT_DIR, MysqlRunningException, \
-    IncorrectOSUser, STAGE_INIT_SEEDDB, record_log, WIN, LINUX
+    IncorrectOSUser, STAGE_INIT_SEEDDB, record_log, WIN, LINUX, ParamException
 from package_vcms.database_oper import MysqlOper
 from package_vcms.git_tools import Mgit
 from package_vcms.merge import merge_sql
 from package_vcms.mysql.config import MysqlServerConfig
 from package_vcms.mysql.constants import MYSQL57_CNF_VAR_PREFERENCE
 from package_vcms.platform_func import platform_functool
-from package_vcms.utils import  getUnArchiveFileName, IsOpen
+from package_vcms.utils import getUnArchiveFileName, IsOpen, none_null_stringNone
 
 logger = logging.getLogger(__file__)
 
@@ -70,6 +70,37 @@ class BuildMysql(Build):
         self._mysqlOper = MysqlOper(pconfig)
         self._sqlScriptsList:list = None
         self._mysqlServerConfig = MysqlServerConfig()
+
+    def checkConfig(self):
+        _failure:int = 0
+        if none_null_stringNone(self.config.package_name) or none_null_stringNone(self.config.database_lang) \
+                or none_null_stringNone(self.config.package_type) or ('zh' != self.config.database_lang  and 'en' != self.config.database_lang ):
+            _failure += 1
+        if  self.config.stage & 1:
+            if none_null_stringNone(self.config.mysql_sql_script_base_dir):
+                _failure += 1
+        else:
+            if none_null_stringNone(self.config.repo_url):
+                _failure += 1
+        if 'DB' == self.config.package_type:
+            if none_null_stringNone(self.config.mysql_conn_username) or none_null_stringNone(self.config.mysql_conn_password) \
+                or none_null_stringNone(self.config.mysql_conn_port):
+                _failure += 1
+            if self.config.stage & 2:
+                if none_null_stringNone(self.config.mysql_seed_database_base):
+                    _failure += 1
+            else:
+                if none_null_stringNone(self.config.mysql_gz_software_path):
+                    _failure += 1
+        elif 'SYNC' == self.config.package_type:
+            pass
+        else:
+            _failure += 1
+        if WIN:
+            if none_null_stringNone(self.config.mysql_sql_script_base_dir) or 0 == self.config.stage & 1:
+                _failure += 1
+        if _failure > 0:
+            raise ParamException()
 
     @record_log
     def downloadRepo(self):
@@ -149,13 +180,13 @@ class BuildMysql(Build):
 
     @record_log
     def _prepare(self):
+        self.checkConfig()
         os.chdir(self.config.work_dir_new)
         #windows现在不能解决jnius运行失败的问题，所以不能进行脚本合并。
         self.downloadRepo()
         if LINUX:
             self._mergeSql()
         self._getSQLScripts()
-        self._initDB()
 
     @record_log
     def buildSyncPackage(self):
@@ -202,6 +233,7 @@ class BuildMysql(Build):
     @record_log
     def buildPackege(self):
         self._prepare()
+        self._initDB()
         if self._mysqlOper.isShutdown():
             # 如果mysql进程没有运行，这里尝试启动一下
             logger.error('mysql not running , start')
