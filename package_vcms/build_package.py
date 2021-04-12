@@ -209,6 +209,8 @@ class BuildMysql(Build):
         for i in os.listdir(os.path.join(CURRENT_DIR,'resource')) :
             if i.endswith('.sh'):
                 copyfile(path.join(CURRENT_DIR,'resource',i),path.join(self.config.package_dir,i))
+        if self.config.download_repo:
+            rmtree(self.config.repo_basedir)
         #直接打一个gz包
         logger.debug('package %s'% self.config.package_name+'.tar.gz')
         self.config.gz_package_path = platform_functool.gz(self.config.package_dir,path.dirname(self.config.package_dir))
@@ -252,6 +254,10 @@ class BuildMysql(Build):
         self._installSql()
         logger.info('stop mysql process. ')
         self._mysqlOper.stopService()
+        #如果自动下载git代码的话，需要把下载后的repo删掉
+        logger.info('remove repo file. ')
+        if self.config.download_repo:
+            rmtree(self.config.repo_basedir)
         logger.info('copy packaing file. ')
         if  self.config.stage & STAGE_INIT_SEEDDB :
             copytree(self.config.mysql_seed_database_base,self.config.package_dir,symlinks=True)
