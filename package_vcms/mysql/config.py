@@ -70,4 +70,4 @@ class MysqlServerConfig(MysqlConfigBase):
     sql_mode:str                        = 'NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,ONLY_FULL_GROUP_BY'
     lower_case_table_names:int          =1
     transaction_isolation:str           = 'read_committed'
-    autocommit:str                      =1
+    autocommit:str                      =0
