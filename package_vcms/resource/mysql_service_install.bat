@@ -24,7 +24,7 @@ set "curdir=%curdir:\=\\%"
 
 
 echo [client]                                                                       >"%curdir_tmp%\my.ini"
-echo port=3306                                                                      >>"%curdir_tmp%\my.ini"
+echo port=8306                                                                      >>"%curdir_tmp%\my.ini"
 echo.                                                                               >>"%curdir_tmp%\my.ini"
 
 echo [mysql]                                                                        >>"%curdir_tmp%\my.ini"
@@ -32,7 +32,7 @@ echo default-character-set=utf8                                                 
 echo.                                                                               >>"%curdir_tmp%\my.ini"
 
 echo [mysqld]                                                                       >>"%curdir_tmp%\my.ini"
-echo port=3306                                                                      >>"%curdir_tmp%\my.ini"
+echo port=8306                                                                      >>"%curdir_tmp%\my.ini"
 echo basedir="%curdir%"                                                             >>"%curdir_tmp%\my.ini"
 echo innodb_file_per_table=1                                                        >>"%curdir_tmp%\my.ini"
 echo datadir="%curdir%\\Data\\"                                                     >>"%curdir_tmp%\my.ini"

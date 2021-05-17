@@ -13,6 +13,8 @@ CURRENT_DIR = path.abspath(path.dirname(__file__))
 STAGE_DOWNLOAD_REPO=1
 STAGE_INIT_SEEDDB=2
 
+LOG_BASE=path.join(path.split(__file__)[0],'log')
+
 #日志
 #logger = logging.getLogger()
 # logging.basicConfig()

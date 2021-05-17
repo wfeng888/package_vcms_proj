@@ -14,8 +14,8 @@ return 0
 ##            sh文件与安装包放在同一目录下
 ##################################################
 
-check_port_busy 3306
-[ `$?` == 1 ] && echo " mysql port 3306 must be busy. please deal with this. install abort!!!!!!" && exit 1
+check_port_busy 8306
+[ `$?` == 1 ] && echo " mysql port 8306 must be busy. please deal with this. install abort!!!!!!" && exit 1
 
 #1、打开当前文件夹
 export curdir=$(cd `dirname $0`;pwd)
@@ -71,7 +71,7 @@ socket="${basic_dir}/mysql.sock"
 default-character-set=utf8
 [mysqld]
 lower_case_table_names=1
-port=3306
+port=8306
 socket="${basic_dir}/var/mysql.sock"
 basedir="${basic_dir}"
 innodb_file_per_table=1
@@ -152,7 +152,7 @@ chown -R mysql:mysql mysql
 #                kill -9 $i
 #        else
 #                echo "****************************************"
-#                echo "**  mysql process 3306 is  not exist  **"
+#                echo "**  mysql process 8306 is  not exist  **"
 #                echo "****************************************"
 #                echo
 #        fi

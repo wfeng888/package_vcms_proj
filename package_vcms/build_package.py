@@ -8,7 +8,7 @@ from os import path
 from shutil import copyfile, copytree, rmtree
 
 from package_vcms import STAGE_DOWNLOAD_REPO, MergeSqlFileException, CURRENT_DIR, MysqlRunningException, \
-    IncorrectOSUser, STAGE_INIT_SEEDDB, record_log, WIN, LINUX, ParamException
+    IncorrectOSUser, STAGE_INIT_SEEDDB, record_log, WIN, LINUX, ParamException, LOG_BASE
 from package_vcms.database_oper import MysqlOper
 from package_vcms.git_tools import Mgit
 from package_vcms.merge import merge_sql
@@ -48,8 +48,12 @@ class Build(object,metaclass=ABCMeta):
         #看看是否要拉取repo代码
         if not (self.config.stage & STAGE_DOWNLOAD_REPO):
             self.config.repo_basedir = path.join(self.config.work_dir_new,'repo')
-            _mgit = Mgit(self.config)
-            _mgit.clone()
+            # _mgit = Mgit(self.config)
+            # _mgit.clone()
+            cmd=['git','clone','--depth=1','--no-local','--verbose',self.config.repo_url,self.config.repo_basedir]
+            # platform_functool.exec_cmd(cmd)
+            logger.info(cmd)
+            os.system('git clone --depth=1 --no-local --verbose %s %s'%(self.config.repo_url,self.config.repo_basedir))
             self.config.download_repo = True
 
 
@@ -111,7 +115,7 @@ class BuildMysql(Build):
 
     @record_log
     def _mergeSql(self):
-        if not merge_sql(self.config.mysql_sql_script_base_dir,self._lang):
+        if not merge_sql(self.config.mysql_sql_script_base_dir,self._lang,LOG_BASE):
             logger.error('MergeSqlFileException')
             raise MergeSqlFileException()
 
