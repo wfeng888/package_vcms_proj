@@ -29,7 +29,7 @@ MYSQL57_CNF_VAR_PREFERENCE = {
               'gtid_mode',
               'enforce_gtid_consistency','max_binlog_size','innodb_log_file_size','innodb_log_files_in_group','query_cache_size',
               'tmp_table_size','myisam_max_sort_file_size','myisam_sort_buffer_size','key_buffer_size','read_buffer_size',
-              'read_rnd_buffer_size','sort_buffer_size','bulk_insert_buffer_size','max_allowed_packet','sql_mode')
+              'read_rnd_buffer_size','sort_buffer_size','bulk_insert_buffer_size','max_allowed_packet','sql_mode','autocommit')
 }
 
 class MYSQL57_VAR(object):

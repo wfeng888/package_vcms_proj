@@ -58,8 +58,8 @@ class MysqlServerConfig(MysqlConfigBase):
     innodb_log_files_in_group:int       = 2
     skip_slave_start:str
 
-    query_cache_size:int                = 0
-    key_buffer_size:int                 = 0
+    query_cache_size:str                = '0K'
+    key_buffer_size:str                 = '0K'
     read_buffer_size:str                = '64K'
     read_rnd_buffer_size:str            = '256K'
     sort_buffer_size:str                = '512K'
@@ -70,4 +70,4 @@ class MysqlServerConfig(MysqlConfigBase):
     sql_mode:str                        = 'NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,ONLY_FULL_GROUP_BY'
     lower_case_table_names:int          =1
     transaction_isolation:str           = 'read_committed'
-    autocommit:str                      =0
+    autocommit:str                      ='OFF'

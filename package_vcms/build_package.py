@@ -48,12 +48,8 @@ class Build(object,metaclass=ABCMeta):
         #看看是否要拉取repo代码
         if not (self.config.stage & STAGE_DOWNLOAD_REPO):
             self.config.repo_basedir = path.join(self.config.work_dir_new,'repo')
-            # _mgit = Mgit(self.config)
-            # _mgit.clone()
-            cmd=['git','clone','--depth=1','--no-local','--verbose',self.config.repo_url,self.config.repo_basedir]
-            # platform_functool.exec_cmd(cmd)
-            logger.info(cmd)
-            os.system('git clone --depth=1 --no-local --verbose %s %s'%(self.config.repo_url,self.config.repo_basedir))
+            _mgit = Mgit(self.config)
+            _mgit.clone()
             self.config.download_repo = True
 
 
