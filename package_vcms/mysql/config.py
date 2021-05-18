@@ -21,7 +21,7 @@ class MysqlServerConfig(MysqlConfigBase):
     innodb_buffer_pool_size:str    = '2G'
     innodb_log_files_in_group:int  = 2
     innodb_thread_concurrency:int  = 32
-    innodb_flush_log_at_trx_commit:int = 1
+    innodb_flush_log_at_trx_commit:str = '0'
     sync_binlog:int               = 1
     thread_cache_size:int         = 32
     max_connections:int           = 500
@@ -71,3 +71,4 @@ class MysqlServerConfig(MysqlConfigBase):
     lower_case_table_names:int          =1
     transaction_isolation:str           = 'read_committed'
     autocommit:str                      ='OFF'
+    lower_case_table_names:str          ='1'

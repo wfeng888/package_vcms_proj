@@ -102,11 +102,12 @@ class MysqlOper(DatabaseInterface):
         cnf = path.join(self.config.mysql_seed_database_base,self.config.cnf_name)
         if WIN:
             mysqld = path.join(path.dirname(self.config.mysql_software_path),'mysqld')
-            return subprocess.Popen([mysqld,'--defaults-file=' + cnf],shell=True,encoding='utf8')
+            return subprocess.Popen([mysqld,'--defaults-file=' + cnf],shell=False,encoding='utf8')
         else:
             mysqld_safe = path.join(path.dirname(self.config.mysql_software_path),'mysqld_safe')
-            self._startProcess = subprocess.Popen([mysqld_safe,'--defaults-file=' + cnf + ' & '],shell=True,encoding='utf8')
-        return self._startProcess
+            cmd='%s --defaults-file=%s &'%(mysqld_safe,cnf)
+            self._startProcess = subprocess.Popen(cmd,shell=True,encoding='utf8')
+            return self._startProcess
 
     @record_log
     def stopService(self):
