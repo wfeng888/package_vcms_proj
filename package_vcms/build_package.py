@@ -196,10 +196,10 @@ class BuildMysql(Build):
         for i in self._sqlScriptsList:
             copyfile(path.join(self.config.mysql_sql_script_base_dir,i),path.join(self.config.package_dir,path.basename(i)))
         #生成一个安装配置文件,这个给shell脚本使用
-        with open(path.join(self.config.package_dir,'config.param'),'xt',encoding='utf8') as f:
-            for i in ('mysql_sync_ip=','mysql_sync_port=8306','mysql_user=root','mysql_passwd=@znv_2014','mysql_software_base=','ignore_error=Y','mysql_socket='):
-                f.write(i+'\n')
-            f.flush()
+        # with open(path.join(self.config.package_dir,'config.param'),'xt',encoding='utf8') as f:
+        #     for i in ('mysql_sync_ip=','mysql_sync_port=8306','mysql_user=root','mysql_passwd=@znv_2014','mysql_software_base=','ignore_error=Y','mysql_socket='):
+        #         f.write(i+'\n')
+        #     f.flush()
         #生成一个安装配置文件,这个给python脚本使用
         with open(path.join(self.config.package_dir,'config.ini'),'xt',encoding='utf8') as f:
             for i in ('[install]','mysql_sync_ip=','mysql_sync_port=','mysql_user=','mysql_passwd=','mysql_software_base=','ignore_error=Y','mysql_socket='):
@@ -207,8 +207,9 @@ class BuildMysql(Build):
             f.flush()
         #将shell安装脚本copy到安装包中
         for i in os.listdir(os.path.join(CURRENT_DIR,'resource')) :
-            if i.endswith('.sh'):
+            if i.endswith('.sh') or 'config.param' == i:
                 copyfile(path.join(CURRENT_DIR,'resource',i),path.join(self.config.package_dir,i))
+
         if self.config.download_repo:
             rmtree(self.config.repo_basedir)
         #直接打一个gz包

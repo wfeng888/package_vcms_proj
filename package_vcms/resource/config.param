@@ -1,7 +1,7 @@
-mysql_sync_ip=
+mysql_sync_ip=127.0.0.1
 mysql_sync_port=8306
 mysql_user=root
 mysql_passwd=@znv_2014
-mysql_software_base=
+mysql_software_base=/home/mysql/mysql
 ignore_error=Y
 mysql_socket=

@@ -8,7 +8,7 @@ exec_sql "source init_db.sql"
 for filename in 'table_shell_merge_mysql.sql' 'views_shell_merge_mysql.sql' \
 'triggers_shell_merge_mysql.sql' 'procedures_functions_shell_merge_mysql.sql' 'basic_data_shell_merge_mysql.sql'
 do
-exec_sql "use usmsc ; source ${filename}"
+exec_sql "set @@autocommit=0;use usmsc ; source ${filename};commit;"
 check_sql_exec_result
 if [ $? -eq 0 ] ; then 
     echo "$filename" >> ${have_done}
