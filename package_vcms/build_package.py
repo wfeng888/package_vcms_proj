@@ -162,7 +162,7 @@ class BuildMysql(Build):
             if not self._mysqlOper.isAlive():
                 logger.error('mysql not running and start failed, abort it! ')
                 raise MysqlRunningException()
-            self._mysqlOper.execSql(sql='create user root identified by \'%s\' ; grant all on *.* to root ; alter user root@\'localhost\' identified by \'%s\' ; flush privileges ;'%(_old_pwd,_old_pwd))
+            self._mysqlOper.execSql(sql='create user autoOPS identified by \'b8Ax@^.,0\' ; grant all on *.* to autoOPS ; alter user root@\'localhost\' identified by \'%s\' ; flush privileges ;'%(_old_pwd))
             self.config.mysql_conn_password = _old_pwd
 
     @record_log
