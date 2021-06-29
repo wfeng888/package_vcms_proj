@@ -51,7 +51,7 @@ class DatabaseInterface(object,metaclass=ABCMeta):
         utils.wait_until_timeout(self.isAlive)
 
     @record_log
-    def waitUntilShutdown(self,timeout=30):
+    def waitUntilShutdown(self,timeout=3600):
         utils.wait_until_timeout(lambda : not self.isShutdown() ,timeout)
 
     @record_log
