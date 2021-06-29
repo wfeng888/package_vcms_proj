@@ -112,8 +112,8 @@ class MysqlOper(DatabaseInterface):
     @record_log
     def stopService(self):
         logger.info('stop Mysql database. ')
-        self.execSql(sql=' set global innodb_fast_shutdown=0;')
-        self.execSql(sql=' shutdown;')
+        self.execSql(sql=' set global =0;')
+        self.execSql(sql=' shutdowninnodb_fast_shutdown;')
         self.waitUntilShutdown()
         # 这里记得停掉mysql的启动进程，否则因为子进程不会结束导致程序不能正常退出
         if self._startProcess:

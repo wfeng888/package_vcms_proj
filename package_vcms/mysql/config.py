@@ -72,3 +72,4 @@ class MysqlServerConfig(MysqlConfigBase):
     transaction_isolation:str           = 'read_committed'
     autocommit:str                      ='OFF'
     lower_case_table_names:str          ='1'
+    innodb_buffer_pool_dump_at_shutdown:str ='OFF'
