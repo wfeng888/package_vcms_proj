@@ -73,3 +73,5 @@ class MysqlServerConfig(MysqlConfigBase):
     autocommit:str                      ='OFF'
     lower_case_table_names:str          ='1'
     innodb_buffer_pool_dump_at_shutdown:str ='OFF'
+    innodb_flush_method:str = 'O_DIRECT'
+    innodb_flush_log_at_trx_commit:int  = 2

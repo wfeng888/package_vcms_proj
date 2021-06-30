@@ -3,12 +3,9 @@ import os
 import subprocess
 from abc import ABCMeta, abstractmethod
 from os import path
-from threading import Thread
-from time import sleep
 
 from package_vcms import utils, record_log, WIN
 from package_vcms.platform_func import platform_functool
-from package_vcms.utils import format_exc
 
 logger = logging.getLogger(__file__)
 class DatabaseInterface(object,metaclass=ABCMeta):
@@ -124,7 +121,7 @@ class MysqlOper(DatabaseInterface):
     @record_log
     def mysqladmin_oper(self,cmd):
         mysqladmin = path.join(self.config.mysql_software_path.rpartition(os.path.sep)[0],'mysqladmin')
-        mysqladmin += mysqladmin + ' ' + '-u' + self.config.mysql_conn_username + ' '
+        mysqladmin += ' ' + '-u' + self.config.mysql_conn_username + ' '
         if self.config.mysql_conn_password:
             mysqladmin += ' ' + '-p' + self.config.mysql_conn_password
         mysqladmin += ' ' + '-P' + str(self.config.mysql_conn_port) + ' ' + '-hlocalhost --protocol=tcp '
