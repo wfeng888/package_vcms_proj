@@ -259,7 +259,7 @@ def record_log(func):
         logger.debug('call function %s.%s  params: args:%s,kwargs:%s'
                   % (func.__qualname__,func.__name__,args,kwargs) )
         r = func(*args,**kwargs)
-        logger.debug('type(r):%s,r.__class__:%s' % (type(r),r.__class__) )
+        logger.debug('type(r):%s,r.__class__:%s,result:%s' % (type(r),r.__class__,r) )
         logger.debug('the end')
         return r
     return wrapper

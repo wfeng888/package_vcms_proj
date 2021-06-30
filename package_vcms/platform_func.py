@@ -6,7 +6,7 @@ import subprocess
 import sys
 from abc import ABCMeta
 
-from package_vcms import record_log
+from package_vcms import record_log, utils
 from package_vcms.utils import getUnArchiveFileName, outres
 
 logger = logging.getLogger(__file__)
@@ -38,6 +38,15 @@ class PlatFormFunc(object,metaclass=ABCMeta):
     def exec_shell(self,cmd):
         return subprocess.run(cmd,capture_output=True,shell=True,encoding='utf8')
 
+    def exec_shell_indnpnt(self,cmd):
+        _result: subprocess.CompletedProcess = subprocess.run(cmd, shell=True,encoding='utf8')
+        if _result.stdout:
+            logger.info(utils.getLine(_result.stdout))
+        if _result.stderr:
+            logger.info(utils.getLine(_result.stderr))
+        logger.info(_result.returncode)
+        _result.check_returncode()
+        assert _result.returncode == 0
 
 class CentOSPlatFormFunc(PlatFormFunc):
     def __init__(self):

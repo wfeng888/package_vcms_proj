@@ -4,6 +4,7 @@ import subprocess
 from abc import ABCMeta, abstractmethod
 from os import path
 from threading import Thread
+from time import sleep
 
 from package_vcms import utils, record_log, WIN
 from package_vcms.platform_func import platform_functool
@@ -52,7 +53,7 @@ class DatabaseInterface(object,metaclass=ABCMeta):
 
     @record_log
     def waitUntilShutdown(self,timeout=3600):
-        utils.wait_until_timeout(lambda : not self.isShutdown() ,timeout)
+        utils.wait_until_timeout(lambda : self.isShutdown() ,timeout)
 
     @record_log
     def getOutput(self,cmd):
@@ -112,13 +113,23 @@ class MysqlOper(DatabaseInterface):
     @record_log
     def stopService(self):
         logger.info('stop Mysql database. ')
-        self.execSql(sql=' set global =0;')
-        self.execSql(sql=' shutdowninnodb_fast_shutdown;')
-        self.waitUntilShutdown()
+        self.execSql(sql=' set global innodb_fast_shutdown=0;')
+        self.mysqladmin_oper('shutdown')
+        # self.waitUntilShutdown()
         # 这里记得停掉mysql的启动进程，否则因为子进程不会结束导致程序不能正常退出
         if self._startProcess:
             self._startProcess.kill()
             self._startProcess = None
+
+    @record_log
+    def mysqladmin_oper(self,cmd):
+        mysqladmin = path.join(self.config.mysql_software_path.rpartition(os.path.sep)[0],'mysqladmin')
+        mysqladmin += mysqladmin + ' ' + '-u' + self.config.mysql_conn_username + ' '
+        if self.config.mysql_conn_password:
+            mysqladmin += ' ' + '-p' + self.config.mysql_conn_password
+        mysqladmin += ' ' + '-P' + str(self.config.mysql_conn_port) + ' ' + '-hlocalhost --protocol=tcp '
+        mysqladmin += ' ' + cmd
+        platform_functool.exec_shell_indnpnt(mysqladmin)
 
     @record_log
     def initService(self):
