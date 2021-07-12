@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 import sys
 import traceback
@@ -14,7 +15,11 @@ STAGE_DOWNLOAD_REPO=1
 STAGE_INIT_SEEDDB=2
 
 LOG_BASE=path.join(path.split(__file__)[0],'log')
-
+if not path.exists(LOG_BASE):
+    os.mkdir(LOG_BASE)
+if not path.exists(path.exists(path.join(LOG_BASE,'running.log'))):
+    with open(path.join(LOG_BASE,'running.log'),'x',encoding='utf8') as f:
+        pass
 #日志
 #logger = logging.getLogger()
 # logging.basicConfig()
