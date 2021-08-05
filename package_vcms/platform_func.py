@@ -35,7 +35,10 @@ class PlatFormFunc(object,metaclass=ABCMeta):
                 os.remove(r_f)
 
     @record_log
-    def exec_shell(self,cmd):
+    def exec_shell(self,cmd,stdout=False):
+        _result: subprocess.CompletedProcess = subprocess.run(cmd,capture_output=True,shell=True,encoding='utf8')
+        if stdout:
+            return utils.getLine(_result.stdout) if _result.stdout else None
         return subprocess.run(cmd,capture_output=True,shell=True,encoding='utf8')
 
     def exec_shell_indnpnt(self,cmd):

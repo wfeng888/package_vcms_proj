@@ -6,6 +6,7 @@ from shutil import copyfile, rmtree
 
 from package_vcms import Config, CURRENT_DIR
 from package_vcms.build_package import BuildMysql
+from package_vcms.pathutils import onerror
 from package_vcms.platform_func import platform_functool
 from package_vcms.utils import formatDate, formatDateTime, none_null_stringNone
 
@@ -43,7 +44,7 @@ class Packaging():
         #将最后的gz包copy到latest文件夹下，方便进一步处理
         logger.info('copy package to lastest. ')
         if  os.path.exists(path.join(self.config.work_dir,'latest')):
-            rmtree(path.join(self.config.work_dir,'latest'))
+            rmtree(path.join(self.config.work_dir,'latest'),onerror=onerror)
         os.mkdir(path.join(self.config.work_dir,'latest'))
         copyfile(self.config.gz_package_path,path.join(self.config.work_dir,'latest',path.basename(self.config.gz_package_path)))
 

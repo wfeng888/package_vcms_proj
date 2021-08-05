@@ -22,7 +22,7 @@ class MysqlServerConfig(MysqlConfigBase):
     innodb_log_files_in_group:int  = 2
     innodb_thread_concurrency:int  = 32
     innodb_flush_log_at_trx_commit:str = '0'
-    sync_binlog:int               = 1
+    sync_binlog:str               = '0'
     thread_cache_size:int         = 32
     max_connections:int           = 500
     group_concat_max_len:int      = 102400
@@ -73,5 +73,4 @@ class MysqlServerConfig(MysqlConfigBase):
     autocommit:str                      ='OFF'
     lower_case_table_names:str          ='1'
     innodb_buffer_pool_dump_at_shutdown:str ='OFF'
-    innodb_flush_method:str = 'O_DIRECT'
-    innodb_flush_log_at_trx_commit:int  = 2
+    # innodb_flush_method:str = 'O_DIRECT' 去掉，windows不支持这个选项

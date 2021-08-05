@@ -1,6 +1,7 @@
 import logging
 import os
 import subprocess
+import time
 from abc import ABCMeta, abstractmethod
 from os import path
 
@@ -112,6 +113,8 @@ class MysqlOper(DatabaseInterface):
         logger.info('stop Mysql database. ')
         self.execSql(sql=' set global innodb_fast_shutdown=0;')
         self.mysqladmin_oper('shutdown')
+        #延迟1s确保mysqld确实已经结束，否则后面删除日志的时候会争用失败
+        time.sleep(1)
         # self.waitUntilShutdown()
         # 这里记得停掉mysql的启动进程，否则因为子进程不会结束导致程序不能正常退出
         if self._startProcess:

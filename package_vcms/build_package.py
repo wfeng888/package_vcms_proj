@@ -14,6 +14,7 @@ from package_vcms.git_tools import Mgit
 from package_vcms.merge import merge_sql
 from package_vcms.mysql.config import MysqlServerConfig
 from package_vcms.mysql.constants import MYSQL57_CNF_VAR_PREFERENCE
+from package_vcms.pathutils import onerror
 from package_vcms.platform_func import platform_functool
 from package_vcms.utils import getUnArchiveFileName, IsOpen, none_null_stringNone
 
@@ -96,9 +97,10 @@ class BuildMysql(Build):
             pass
         else:
             _failure += 1
-        if WIN:
-            if none_null_stringNone(self.config.mysql_sql_script_base_dir) or 0 == self.config.stage & 1:
-                _failure += 1
+        # 2021/8/5
+        # if WIN:
+        #     if none_null_stringNone(self.config.mysql_sql_script_base_dir) or 0 == self.config.stage & 1:
+        #         _failure += 1
         if _failure > 0:
             raise ParamException()
 
@@ -182,10 +184,10 @@ class BuildMysql(Build):
     def _prepare(self):
         self.checkConfig()
         os.chdir(self.config.work_dir_new)
-        #windows现在不能解决jnius运行失败的问题，所以不能进行脚本合并。
+        #windows现在不能解决jnius运行失败的问题，所以不能进行脚本合并。 改了，验证一下 2021/8/5
         self.downloadRepo()
-        if LINUX:
-            self._mergeSql()
+        #if LINUX:
+        self._mergeSql()
         self._getSQLScripts()
 
     @record_log
@@ -211,13 +213,13 @@ class BuildMysql(Build):
                 copyfile(path.join(CURRENT_DIR,'resource',i),path.join(self.config.package_dir,i))
 
         if self.config.download_repo:
-            rmtree(self.config.repo_basedir)
+            rmtree(self.config.repo_basedir,onerror=onerror)
         #直接打一个gz包
         logger.debug('package %s'% self.config.package_name+'.tar.gz')
         self.config.gz_package_path = platform_functool.gz(self.config.package_dir,path.dirname(self.config.package_dir))
         #工作目录中的打包文件不用了，删掉
         logger.debug('remove %s'%self.config.package_name)
-        rmtree(self.config.package_dir)
+        rmtree(self.config.package_dir,onerror=onerror)
 
     @record_log
     def _checkSeedCorrect(self):
@@ -258,7 +260,7 @@ class BuildMysql(Build):
         #如果自动下载git代码的话，需要把下载后的repo删掉
         logger.info('remove repo file. ')
         if self.config.download_repo:
-            rmtree(self.config.repo_basedir)
+            rmtree(self.config.repo_basedir,onerror=onerror)
         logger.info('copy packaing file. ')
         if  self.config.stage & STAGE_INIT_SEEDDB :
             copytree(self.config.mysql_seed_database_base,self.config.package_dir,symlinks=True)
@@ -279,7 +281,7 @@ class BuildMysql(Build):
             #先打一个tar包
             logger.debug('package %s'% self.config.package_dir+'.tar')
             platform_functool.tar(self.config.package_dir,ar_root=path.dirname(self.config.package_dir))
-            rmtree(self.config.package_dir)
+            rmtree(self.config.package_dir,onerror=onerror)
             copyfile(path.join(CURRENT_DIR,'resource',BuildMysql._INSTALL_SCRIPT),path.join(self.config.work_dir_new,BuildMysql._INSTALL_SCRIPT))
             #再打一个gz包，别问为什么package_type，安装脚本里面写死了要处理的是tar包，不是gz包
             logger.debug('package %s'% self.config.package_name+'.tar.gz')
@@ -294,7 +296,7 @@ class BuildMysql(Build):
                 if i.endswith('.bat'):
                     copyfile(path.join(CURRENT_DIR,'resource',i),path.join(self.config.package_dir,i))
             self.config.gz_package_path = platform_functool.gz(self.config.package_dir)
-            rmtree(self.config.package_dir)
+            rmtree(self.config.package_dir,onerror=onerror)
         logger.info('finish packaging. ')
         logger.info('purge garbage. ')
 
